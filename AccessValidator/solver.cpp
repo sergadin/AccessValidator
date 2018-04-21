@@ -21,19 +21,16 @@ static VertexIDSeq chooseVerticesToModify(Graph &g) {
 	return result;
 }
 
-static EquivalenceClass merge(const EquivalenceClass &c1, const EquivalenceClass &c2) {
+// merge вычисляет (c1+c2) - removed.
+// c2 объединенное с removed дает битовое множество ребер, входящих в вершину.
+// Изменение значения в вершине приведет к тому, что ребра из c2 станут выполнены, а из removed - нет.
+static EquivalenceClass merge(const EquivalenceClass &c1, const EquivalenceClass &c2, const EdgesBitset &removed) {
 	EquivalenceClass res;
 	for (int k = 0; k < c1.size(); k++) {
-		res[k] = (c1[k] || c2[k]);
+		res[k] = (c1[k] || c2[k]) && !removed[k];
 	}
 	return res;
 }
-
-struct UpdateInfo {
-	VertexID vid;
-	double old;
-	double newValue;
-};
 
 // Состояние перебора определяется двумя параметрами:
 // - списком вершин, которые могут быть сейчас изменены и
@@ -60,16 +57,16 @@ static SearchState makeSearchState(Graph &g, const std::set<VertexID> &visited) 
 	return SearchState({ new_vertices_to_try, ValueClasses::const_iterator() });
 }
 
-void solver(Graph &g, VertexID target) {
+bool Solver::solver(Graph &g, VertexID target) {
 	History classes_history; // Какие классы эквивалентности мы уже видели
-	std::stack<UpdateInfo> trace; // История выполненных изменений значений вершин
 	std::stack<SearchState> search_state; // Что еще осталось перебрать. Замена рекурсии
 	std::set<VertexID> visited_vertices; // Чтобы по многу раз не пытаться изменять значения одной вершины
+
+	this->trace = std::stack<UpdateInfo>();
 
 	classes_history.insert(g.equivalenceClass());
 	// Создадим корневую запись для организации перебора
 	search_state.push(makeSearchState(g, visited_vertices));
-	//visited_vertices.insert(search_state.top().verticesToTry.at(0));
 	
 	while (!search_state.empty()) {
 		std::cout << "\n\n" << g << std::endl;
@@ -80,7 +77,7 @@ void solver(Graph &g, VertexID target) {
 				std::cout << trace.top().vid << " " << trace.top().old << " ==> " << trace.top().newValue << std::endl;
 				trace.pop();
 			}
-			return;
+			return true;
 		}
 
 		// Восстановим то место, где перебор был прерван "спуском вниз".
@@ -95,7 +92,7 @@ void solver(Graph &g, VertexID target) {
 			const ValueClasses &equiv_classes = g.vertex(vid).equivalenceClasses();
 			visited_vertices.insert(vid);
 			for (/* empty */; ec != equiv_classes.end(); ec++) {
-				EquivalenceClass expected_outcome = merge(g.equivalenceClass(), ec->edges_bitset);
+				EquivalenceClass expected_outcome = merge(g.equivalenceClass(), ec->edges_bitset, ec->unsatisfied_edges);
 				std::cout << "Inspecting possible change of " << vid << " from " << g.vertex(vid).value() << " to " << ec->val << std::endl;
 				std::cout << "\tcurrent  : " << g.equivalenceClass()
 					<< "\n\tsatisfied: " << ec->edges_bitset
@@ -127,5 +124,5 @@ void solver(Graph &g, VertexID target) {
 		}
 	}
 	std::cout << "No access to " << target << "\n" << std::endl;
-	return;
+	return false;
 }

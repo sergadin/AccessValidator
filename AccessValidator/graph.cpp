@@ -69,12 +69,14 @@ static bool covered(const SatisfiedEdges &se, const ValueClasses &classes)
 void Vertex::computeEquivalenceClasses()
 {
 	if (in_.size() == 0) {
-		classes_.push_back(ValueClass(1.23456, SatisfiedEdges()));
+		classes_.push_back(ValueClass(1.23456, SatisfiedEdges(), EdgesBitset()));
 		return; // No incoming edges
 	}
 	// Заполним вектор порядковых номеров входящих ребер
+	EdgesBitset incoming_bitset;
 	std::vector<size_t> ids(in_.size());
 	for (size_t k = 0; k < in_.size(); k++) {
+		incoming_bitset[in_.at(k)->seq] = true;
 		ids[k] = in_.at(k)->seq;
 	}
 
@@ -83,15 +85,17 @@ void Vertex::computeEquivalenceClasses()
 	for (size_t bitset = (1 << in_.size()) - 1; bitset > 0; --bitset) {
 		Predicate pred;
 		SatisfiedEdges se;
+		EdgesBitset unsatisfied = incoming_bitset;
 		for (int k = 0; k < in_.size() && !pred.isEmpty(); k++) {
 			if (bitset & (1 << k)) {
 				se[ids[k]] = true;
+				unsatisfied[ids[k]] = false;
 				pred = intersect(pred, *(in_.at(k)->p));
 			}
 		}
 		if (!pred.isEmpty() && !covered(se, classes_)) {
 			std::cerr << pred << std::endl;
-			classes_.push_back(ValueClass(pred.sample(), se));
+			classes_.push_back(ValueClass(pred.sample(), se, unsatisfied));
 		}
 	}
 }

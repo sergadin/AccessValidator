@@ -4,6 +4,7 @@
 #include <vector>
 #include <bitset>
 #include <set>
+#include <stack>
 #include <algorithm>
 #include <iostream>
 #include "predicate.h"
@@ -26,14 +27,19 @@ typedef double ValueType;
 // Битовые множества требуют указать размер в момент компиляции.
 // Эта константа задает максимально допустимое число ребер в графе.
 const int max_edges = 32;
-typedef std::bitset<max_edges> SatisfiedEdges;
+typedef std::bitset<max_edges> EdgesBitset;
+typedef typename EdgesBitset SatisfiedEdges;
 typedef typename SatisfiedEdges EquivalenceClass;
 
 // Описание класса эквивалентности значений вершины
 struct ValueClass {
 	ValueType val; // Представитель класса
 	SatisfiedEdges edges_bitset; // Какие входящие ребра становятся выполнимыми, если вершина имеет это значение
-	ValueClass(const ValueType& v, SatisfiedEdges &se) : val(v), edges_bitset(se) {}
+	EdgesBitset unsatisfied_edges; // Какие входящие ребра становятся невыполнимыми, если вершина имеет это значение
+
+	ValueClass(const ValueType& v, SatisfiedEdges &se, EdgesBitset &unsatisfied)
+		: val(v), edges_bitset(se), unsatisfied_edges(unsatisfied)
+	{}
 };
 
 typedef std::vector<ValueClass> ValueClasses;
@@ -130,8 +136,16 @@ public:
 	friend std::ostream &operator<<(std::ostream &os, const Graph &g);
 };
 
-
-void solver(Graph &g, VertexID target);
+class Solver {
+public:
+	struct UpdateInfo {
+		VertexID vid;
+		ValueType old;
+		ValueType newValue;
+	};
+	std::stack<UpdateInfo> trace; // История выполненных изменений значений вершин
+	bool solver(Graph &g, VertexID target); // проверяет наличие доступа к целевой вершине
+};
 
 //
 // Реализация inline-функций
