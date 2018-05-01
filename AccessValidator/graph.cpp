@@ -69,7 +69,9 @@ static bool covered(const SatisfiedEdges &se, const ValueClasses &classes)
 void Vertex::computeEquivalenceClasses()
 {
 	if (in_.size() == 0) {
-		classes_.push_back(ValueClass(1.23456, SatisfiedEdges(), EdgesBitset()));
+                SatisfiedEdges se_empty;
+                EdgesBitset ebs_empty;
+		classes_.push_back(ValueClass(1.23456, se_empty, ebs_empty));
 		return; // No incoming edges
 	}
 	// Заполним вектор порядковых номеров входящих ребер

@@ -28,8 +28,8 @@ typedef double ValueType;
 // Эта константа задает максимально допустимое число ребер в графе.
 const int max_edges = 32;
 typedef std::bitset<max_edges> EdgesBitset;
-typedef typename EdgesBitset SatisfiedEdges;
-typedef typename SatisfiedEdges EquivalenceClass;
+typedef typename ::EdgesBitset SatisfiedEdges;
+typedef typename ::SatisfiedEdges EquivalenceClass;
 
 // Описание класса эквивалентности значений вершины
 struct ValueClass {
